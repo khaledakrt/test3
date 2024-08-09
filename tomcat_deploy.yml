@@ -1,0 +1,64 @@
+---
+- name: Deploy Tomcat and WAR
+  hosts: local
+  become: yes
+  vars:
+    tomcat_version: "9.0.73"  # Adjust this as needed
+    tomcat_install_dir: "/opt/tomcat"
+    max_heap_size_dev: "256m"
+    max_heap_size_prod: "512m"
+    environment: "DEV"  # Change to "PROD" for production
+    war_file: "sample.war"
+  
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - openjdk-11-jdk
+          - wget
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create Tomcat user
+      user:
+        name: tomcat
+        shell: /bin/false
+
+    - name: Create Tomcat installation directory
+      file:
+        path: "{{ tomcat_install_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download Tomcat
+      get_url:
+        url: "https://archive.apache.org/dist/tomcat/tomcat-9/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+
+    - name: Extract Tomcat
+      unarchive:
+        src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: "{{ tomcat_install_dir }}"
+        remote_src: yes
+
+    - name: Set up Tomcat environment
+      lineinfile:
+        path: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/bin/catalina.sh"
+        regexp: '^#.*JAVA_OPTS'
+        line: 'JAVA_OPTS="$JAVA_OPTS -Xmx{{ max_heap_size }}"'
+        insertafter: '^#.*JAVA_OPTS'
+      vars:
+        max_heap_size: "{{ max_heap_size_dev if environment == 'DEV' else max_heap_size_prod }}"
+
+    - name: Ensure Tomcat is executable
+      file:
+        path: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/bin/catalina.sh"
+        mode: '0755'
+
+    - name: Start Tomcat
+      command: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/bin/startup.sh"
+
+    - name: Deploy WAR file
+      copy:
+        src: "{{ war_file }}"
+        dest: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/webapps/{{ war_file }}"
