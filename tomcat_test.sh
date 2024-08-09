@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Check that tomcat is running well
-# Run this script after tomcat installation
+# Check that Tomcat is running well
+# Run this script after Tomcat installation
 
 export ENVIRONMENT=$1
 
@@ -10,8 +10,7 @@ usage() {
     exit 1
 }
 
-if [ $# -ne 1 ]
-then
+if [ $# -ne 1 ]; then
     usage
 fi
 
@@ -26,9 +25,10 @@ echo "---------------------------------"
 ps -ef | grep java
 echo ""
 
-echo "Check tomcat service status"
+echo "Check Tomcat service status"
 echo "---------------------------"
-service tomcat9 status
+# Tomcat is started by the script, so checking the process instead
+echo "Tomcat status: Running if 'java' process is found"
 echo ""
 
 echo "Check application home page"
@@ -36,6 +36,6 @@ echo "---------------------------"
 curl http://localhost:8080/sample/
 echo ""
 
-echo "Check tomcat logs"
+echo "Check Tomcat logs"
 echo "-----------------"
-cat /var/log/tomcat9/catalina.out
+cat /opt/tomcat/logs/catalina.out
